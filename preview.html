@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Monitoramento de Recursos Hídricos</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body { margin:0; font-family: Arial; }
+
+.tela {
+  display:none;
+  height:100vh;
+}
+
+.ativa {
+  display:block;
+}
+
+/* TELA 1 */
+#tela1 {
+  background-image: url('https://images.unsplash.com/photo-1508780709619-79562169bc64');
+  background-size: cover;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.box {
+  background: rgba(0,0,0,0.6);
+  padding:30px;
+  border-radius:10px;
+  width:350px;
+}
+
+select, input, textarea, button {
+  width:100%;
+  margin-top:10px;
+  padding:8px;
+}
+
+/* TELA 2 */
+#map {
+  height:60vh;
+}
+
+#painel {
+  padding:15px;
+}
+
+table {
+  width:100%;
+  border-collapse: collapse;
+}
+
+td, th {
+  border:1px solid #ccc;
+  padding:8px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- TELA 1 -->
+<div id="tela1" class="tela ativa">
+  <div class="box">
+    <h2>Monitoramento:<br>A Alma da Gestão de Recursos Hídricos</h2>
+
+    <label>Qual segmento você representa*</label>
+    <select id="segmento" required>
+      <option value="">Selecione</option>
+      <option>Poder Público</option>
+      <option>Sociedade Civil</option>
+      <option>Usuários de Água</option>
+    </select>
+
+    <label>Nome</label>
+    <input id="nome">
+
+    <label>Instituição</label>
+    <input id="instituicao">
+
+    <button onclick="irMapa()">Avançar</button>
+  </div>
+</div>
+
+<!-- TELA 2 -->
+<div id="tela2" class="tela">
+
+  <div id="map"></div>
+
+  <div id="painel">
+    <p><b>Latitude:</b> <span id="lat">-</span></p>
+    <p><b>Longitude:</b> <span id="lng">-</span></p>
+
+    <textarea id="descricao" placeholder="Descreva o objetivo do monitoramento"></textarea>
+
+    <button onclick="adicionarPonto()">Adicionar Ponto</button>
+
+    <h3>Pontos Selecionados</h3>
+
+    <table id="tabela">
+      <thead>
+        <tr>
+          <th>Segmento</th>
+          <th>Nome</th>
+          <th>Instituição</th>
+          <th>Latitude</th>
+          <th>Longitude</th>
+          <th>Descrição</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button onclick="exportarCSV()">Salvar Dados (CSV)</button>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map, lat, lng;
+let dados = [];
+
+function irMapa(){
+  let segmento = document.getElementById("segmento").value;
+
+  if(segmento === ""){
+    alert("Selecione o segmento!");
+    return;
+  }
+
+  document.getElementById("tela1").classList.remove("ativa");
+  document.getElementById("tela2").classList.add("ativa");
+
+  setTimeout(iniciarMapa, 300);
+}
+
+function iniciarMapa(){
+  map = L.map('map').setView([-22.5, -44.5], 8);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  map.on('contextmenu', function(e){
+    lat = e.latlng.lat.toFixed(6);
+    lng = e.latlng.lng.toFixed(6);
+
+    document.getElementById("lat").innerText = lat;
+    document.getElementById("lng").innerText = lng;
+
+    L.marker([lat,lng]).addTo(map);
+  });
+}
+
+function adicionarPonto(){
+
+  if(!lat){
+    alert("Clique no mapa primeiro!");
+    return;
+  }
+
+  let item = {
+    segmento: document.getElementById("segmento").value,
+    nome: document.getElementById("nome").value,
+    instituicao: document.getElementById("instituicao").value,
+    lat: lat,
+    lng: lng,
+    descricao: document.getElementById("descricao").value
+  };
+
+  dados.push(item);
+
+  atualizarTabela();
+
+  document.getElementById("descricao").value = "";
+}
+
+function atualizarTabela(){
+  let tbody = document.querySelector("#tabela tbody");
+  tbody.innerHTML = "";
+
+  dados.forEach(d => {
+    let linha = `<tr>
+      <td>${d.segmento}</td>
+      <td>${d.nome}</td>
+      <td>${d.instituicao}</td>
+      <td>${d.lat}</td>
+      <td>${d.lng}</td>
+      <td>${d.descricao}</td>
+    </tr>`;
+    tbody.innerHTML += linha;
+  });
+}
+
+function exportarCSV(){
+
+  let csv = "Segmento,Nome,Instituição,Latitude,Longitude,Descrição\n";
+
+  dados.forEach(d => {
+    csv += `${d.segmento},${d.nome},${d.instituicao},${d.lat},${d.lng},${d.descricao}\n`;
+  });
+
+  let blob = new Blob([csv], { type: 'text/csv' });
+  let link = document.createElement("a");
+
+  link.href = URL.createObjectURL(blob);
+  link.download = "monitoramento.csv";
+  link.click();
+}
+</script>
+
+</body>
+</html>
